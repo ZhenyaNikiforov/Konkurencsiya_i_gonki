@@ -1,15 +1,5 @@
-/*- Подпрограмма, посвящённая прогресс-барам. -*/
-
-/*-
-номер потока по порядку;
-
-• идентификатор потока;
-
-• заполняющийся индикатор наподобие прогресс-бара, визуализирующий процесс «расчёта»;
-
-• после завершения работы каждого потока в соответствующей строке суммарное время, затраченное на работу потока.
-
--*/
+/*- Подпрограмма, посвящённая прогресс-барам.
+(Задание-2) -*/
 
 #include <iostream>
 #include <vector>
@@ -33,7 +23,7 @@ mutex mtx;
 
 void fillBar(int threadNumber)
 {
-  threadsID[threadNumber] = static_cast<int>(GetCurrentThreadId());
+  int myId = static_cast<int>(GetCurrentThreadId());
   auto startTime = chrono::high_resolution_clock::now();
 
   for (int symbolCount = 0; symbolCount < threadLength; ++symbolCount)
@@ -41,6 +31,17 @@ void fillBar(int threadNumber)
     this_thread::sleep_for(chrono::seconds(1));
     lock_guard<mutex> lock(mtx);
     threadList[threadNumber][symbolCount] = '*';
+    threadsID[threadNumber] = myId;
+
+    bool lastSymbol = false;
+
+    if (symbolCount + 1 == threadLength)
+    {
+      lastSymbol = true;
+      auto endTime = chrono::high_resolution_clock::now();
+      chrono::duration<double> resultTime = endTime - startTime;
+      threadsTime[threadNumber] = resultTime.count();
+    }
 
 #ifdef _WIN32
     system("cls");
@@ -50,51 +51,27 @@ void fillBar(int threadNumber)
 
     cout << setw(5) << "NUM"
          << setw(10) << "ID"
-         << setw(threadLength + 2) << "PROGRESS_BAR"
-         << setw(15) << "TIME"
-         << endl;
+         << setw(threadLength + 2) << "PROGRESS_BAR";
+    if (lastSymbol)
+      cout << setw(15) << "TIME";
+    cout << endl;
 
     for (int threadsCount = 0; threadsCount < threadsQuantity; ++threadsCount)
     {
       cout << setw(5) << threadsCount + 1
            << setw(10) << threadsID[threadsCount]
-           << setw(threadLength + 2) << threadList[threadsCount]
-           << setw(15) << " "
-           << endl;
+           << setw(threadLength + 2) << threadList[threadsCount];
+      if (lastSymbol)
+        cout << setw(15) << threadsTime[threadsCount];
+      cout << endl;
     }
   }
-
-  auto endTime = chrono::high_resolution_clock::now();
-  chrono::duration<double> resultTime = endTime - startTime;
-  threadsTime[threadNumber] = resultTime.count();
-
   return;
 }
 
 int main()
 {
   vector<thread> threads;
-
-#ifdef _WIN32
-  system("cls");
-#else
-  system("clear");
-#endif
-
-  cout << setw(5) << "NUM"
-       << setw(10) << "ID"
-       << setw(threadLength + 2) << "PROGRESS_BAR"
-       << setw(15) << "TIME"
-       << endl;
-
-  for (int threadsCount = 0; threadsCount < threadsQuantity; ++threadsCount)
-  {
-    cout << setw(5) << threadsCount + 1
-         << setw(10) << " "
-         << setw(threadLength + 2) << threadList[threadsCount]
-         << setw(15) << " "
-         << endl;
-  }
 
   for (int threadsCount = 0; threadsCount < threadsQuantity; ++threadsCount)
   {
@@ -108,27 +85,6 @@ int main()
       t.join();
     };
   };
-
-#ifdef _WIN32
-  system("cls");
-#else
-  system("clear");
-#endif
-
-  cout << setw(5) << "NUM"
-       << setw(10) << "ID"
-       << setw(threadLength + 2) << "PROGRESS_BAR"
-       << setw(15) << "TIME"
-       << endl;
-
-  for (int threadsCount = 0; threadsCount < threadsQuantity; ++threadsCount)
-  {
-    cout << setw(5) << threadsCount + 1
-         << setw(10) << threadsID[threadsCount]
-         << setw(threadLength + 2) << threadList[threadsCount]
-         << setw(15) << threadsTime[threadsCount]
-         << endl;
-  }
 
   return 0;
 }
